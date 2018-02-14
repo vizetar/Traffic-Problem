@@ -7,6 +7,6 @@ namespace Resources
     public interface IOrbit 
     {
         double Distance();
-        int TotalCraters();
+        double TotalCraters();
     }
 }

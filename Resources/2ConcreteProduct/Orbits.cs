@@ -11,7 +11,7 @@ namespace Resources
             return 18;
         }
 
-        public int TotalCraters()
+        public double TotalCraters()
         {
             return 20;
         }
@@ -24,7 +24,7 @@ namespace Resources
             return 20;
         }
 
-        public int TotalCraters()
+        public double TotalCraters()
         {
             return 10;
         }

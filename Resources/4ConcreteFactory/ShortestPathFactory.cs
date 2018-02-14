@@ -8,10 +8,11 @@ namespace Resources
     {
 
         IOrbitFactory orbit;
-        int craters = 0;
+        double craters = 0;
         double time = 0;
         double speed = 0;
         Orbits orbit_result;
+        Dictionary<Orbits, Vehicles> vehiclesList = new Dictionary<Orbits, Vehicles>();
 
         IVehicleFactory vehicle;
         double vehicleSpeed = 0;
@@ -20,44 +21,62 @@ namespace Resources
 
         public ResponseModel GetPath(IList<RequestModel> request, Weather weatherType)
         {
+            var vehicles = GetResources.FindWeather(weatherType).GetWeather().AllowedVehicles();
+
+            foreach (var req in request)
+            {
+                speed = req.Speed;
+                foreach (var res in vehicles)
+                {
+                    var _vehicle = GetResources.FindVehicle(res);
+                    if (vehicleSpeed == 0 || _vehicle.GetVehicle().Speed() >= speed)
+                    {
+                        var totaltimetocrosscrater = _vehicle.GetVehicle().TimeToCrossPerCrater();
+                        if (timetocrosscrater == 0 || totaltimetocrosscrater < timetocrosscrater)
+                        {
+                            vehicle_result = res;
+                            vehicle = _vehicle;
+                            vehicleSpeed = vehicle.GetVehicle().Speed();
+                            timetocrosscrater = totaltimetocrosscrater;
+                        }
+
+                    }
+                }
+                vehiclesList.Add(req.Orbit, vehicle_result);
+                vehicleSpeed = 0;
+                timetocrosscrater = 0;
+            }
+
             foreach (var req in request)
             {
                 var _orbit = GetResources.FindOrbit(req.Orbit);
+                var getVehicle = vehiclesList.GetValueOrDefault(req.Orbit);
+                var orbitVehicle = GetResources.FindVehicle(getVehicle);
+
                 var distance = _orbit.GetOrbit().Distance();
                 var _time = distance / req.Speed;
-                if (_time < time || time == 0)
+                
+                var _craters = _orbit.GetOrbit().TotalCraters();
+                var cratersIncrease = _craters * (GetResources.FindWeather(weatherType).GetWeather().CraterIncrease() / 100);
+                var cratersReduce = _craters * (GetResources.FindWeather(weatherType).GetWeather().CraterReduce() / 100);
+                _craters = _craters + cratersIncrease - cratersReduce;
+
+                //var cratertime = orbitVehicle.GetVehicle().TimeToCrossPerCrater() * _craters;
+
+                if (_time <= time || time == 0)
                 {
-                    orbit_result = req.Orbit;
-                    time = _time;
-                    orbit = _orbit;
-                    speed = req.Speed;
-                    craters = orbit.GetOrbit().TotalCraters();
-                }
-            }
-
-            var cratersIncrease = craters * (GetResources.FindWeather(weatherType).GetWeather().CraterIncrease() / 100);
-            var cratersReduce = craters * (GetResources.FindWeather(weatherType).GetWeather().CraterReduce() / 100);
-            craters = craters + cratersIncrease - cratersReduce;
-
-            var vehicles = GetResources.FindWeather(weatherType).GetWeather().AllowedVehicles();
-
-            foreach (var res in vehicles)
-            {
-                var _vehicle = GetResources.FindVehicle(res);
-                if (vehicleSpeed == 0 ||  _vehicle.GetVehicle().Speed() >= speed)
-                {
-                    var totaltimetocrosscrater = _vehicle.GetVehicle().TimeToCrossPerCrater();
-                    if (timetocrosscrater == 0 || totaltimetocrosscrater < timetocrosscrater)
+                    if (_craters < craters || craters == 0)
                     {
-                        vehicle_result = res;
-                        vehicle = _vehicle;
-                        vehicleSpeed = vehicle.GetVehicle().Speed();
-                        timetocrosscrater = totaltimetocrosscrater;
+                        orbit_result = req.Orbit;
+                        time = _time;
+                        orbit = _orbit;
+                        speed = req.Speed;
+                        craters = _craters;
                     }
-
                 }
-
             }
+
+            vehicle_result = vehiclesList.GetValueOrDefault(orbit_result);
 
             return new ResponseModel()
             {
